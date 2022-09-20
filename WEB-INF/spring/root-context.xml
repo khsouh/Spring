@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:mybatis-spring="http://mybatis.org/schema/mybatis-spring"
+	xmlns:tx="http://www.springframework.org/schema/tx"
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xsi:schemaLocation="http://mybatis.org/schema/mybatis-spring http://mybatis.org/schema/mybatis-spring-1.2.xsd
+		http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-4.3.xsd
+		http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-4.3.xsd
+		http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-4.3.xsd">
+	 <aop:aspectj-autoproxy></aop:aspectj-autoproxy>
+	<!-- Root Context: defines shared resources visible to all other web components -->
+		<bean id="dataSource" class="com.zaxxer.hikari.HikariDataSource" destroy-method="close"><!--데이터베이스 접속 로그 등록 -->
+		  <property name="driverClassName" value="net.sf.log4jdbc.sql.jdbcapi.DriverSpy"></property> 
+		  <property name="jdbcUrl" value="jdbc:log4jdbc:oracle:thin:@localhost:1521:XE"></property>
+		  <property name="username" value="springuser"></property>
+		  <property name="password" value="oracle"></property> <!--  프로퍼티 네임은 고유값 으로 바꾸면 안된다 -->
+		</bean>
+		<bean id ="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean"><!-- bean객체를 mybatis가 가져갈 수 있도록  해봅시다.-->
+		  <property name="dataSource" ref="dataSource"></property><!-- 위의 빈 id 를 가져와 프로퍼티 네임에 적용 -->
+		  <property name="configLocation" value="classpath:/MybatisConfig.xml"></property> <!-- 컨피그 로케이션, classpath 는  src/main/java , src/main/resources, src>main>webapp 안에서  찾는다. 결국 path는 src에서 main안의 첫번째 폴더를 갖는다.(java,main,webapp,...)  -->
+		  <property name="mapperLocations" value="classpath:mappers/**/*Mapper.xml"></property> <!-- 맵퍼 자동등록 , 맵퍼스 폴더 안에서 모든파일중 Mapper.xml로 끝나는 파일을 로딩합니다. -->
+		</bean>
+		<bean id="sqlSession" class="org.mybatis.spring.SqlSessionTemplate" destroy-method="clearCache"> <!--sqlSession을  쓰레드에 안전하고 여러개의 DAO나 매퍼에서 공유할수 있다.clearCache: 끝나면 남아있는 캐시를 삭제 (auto commit ) --><!-- 스테이트먼트 등록 -->
+		<!--SqlSession : mapper에서 sql을 받아온다(sql 실행문),SqlSessionTemplate : sql을 모아놓은 판  -->
+		  <constructor-arg name="sqlSessionFactory" ref="sqlSessionFactory"></constructor-arg><!-- 생성자 등록하기 , 래퍼런스를 위의 빈 id 를 가져와 sqlSessionFactory에 적용-->
+		</bean> 
+		<bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+		  <property name="dataSource" ref="dataSource"></property>
+		</bean>
+		<tx:annotation-driven/>
+		<context:component-scan base-package="com.myweb.persistence"></context:component-scan><!-- 스프링 프레임워크가 해당 패키지의 자바파일을 스캐닝한다., 자바파일을 연결시켜 줍니다. -->
+		<context:component-scan base-package="com.myweb.service"></context:component-scan>
+</beans>

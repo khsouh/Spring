@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns:context="http://www.springframework.org/schema/context"
+  xmlns:security="http://www.springframework.org/schema/security"
+  xsi:schemaLocation="http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd 
+    http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-4.3.xsd 
+    http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-4.2.xsd">
+ <context:component-scan base-package="com.myweb"/>
+ <bean id="bcryptPwdEncoder" class="org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder"></bean>
+ 
+ <security:http auto-config="true" use-expressions="true">
+  <security:session-management>
+    <security:concurrency-control max-sessions="1" expired-url="/"/><!--로그인 세션은 최대 한개 , 1개이상시 세션을 파기하고 메인으로 이동-->
+  </security:session-management>
+  <security:intercept-url pattern="/admin/**" access="hasRole('ROLE_ADM')"/>
+  <security:intercept-url pattern="/product/**" access="hasAnyRole('ROLE_MEN','ROLE_ADM')"/>
+  <security:intercept-url pattern="/**" access="permitAll()"/>
+  <security:form-login username-parameter="email" password-parameter="pwd"
+  login-processing-url="/member/login" login-page="/member/login"
+  default-target-url="/"
+  authentication-failure-handler-ref="loginFailHandler"
+  authentication-success-handler-ref="loginSuccessHandler"/><!--로그인 실패를 확인해주는 핸들러  와 성공시 카운트를 초기화하는 핸들러 -->
+  <security:logout logout-url="/member/logout" invalidate-session ="true"
+  logout-success-url="/"/><!--logout-url : 로그아웃을 요청할 url, invalidate-session : 세션파기 (true면 세션파기), logout-success-url : 성공시 이동할 url -->
+  <security:access-denied-handler error-page="/access_denied"/><!-- 접근제한자가 나타나면 어디로 보낼지 설정 -->
+ </security:http>
+ <bean id="userService" class="com.myweb.service.AuthMemberDetailService"></bean><!--시큐리티가 제공하는 인터페이스의 DetailService를 Implements한 클래스 를생성합니다 -->
+ <security:authentication-manager>
+  <security:authentication-provider user-service-ref = "userService"><!--user-service-ref : 사용자 정의로 작성된 UserDetailsService빈을 등록하는 속성으로 "userService"로 정의된 빈을 UserDetailsService로 등록  -->
+    <security:password-encoder ref="bcryptPwdEncoder"/>
+  </security:authentication-provider>
+ </security:authentication-manager>
+ <bean id ="loginFailHandler" class="com.myweb.handler.LoginFailHandler"><!--LoginFailHandler : 로그인을 하면 에러가 발생했다는 가정하에 실행  -->
+  <property name="authEmail" value="email"></property>
+  <property name="authPwd" value="pwd"></property>
+  <property name="errMsg" value="err_msg"></property>
+  <property name="failUrl" value="/member/login?error"></property><!--property : 이미 처리된 값들을 LoginFailHandler 로 보냅니다.  -->
+ </bean>
+ <bean id="loginSuccessHandler" class="com.myweb.handler.LoginSuccessHandler"><!-- 로그인이 성공하면 실행할 핸들러 -->
+  <property name="authEmail" value="email"></property>
+  <property name="successUrl" value="/"></property><!--성공시 메인화면으로..  -->
+ </bean>
+</beans>
+
+
+
+
+
